@@ -46,6 +46,7 @@ mod hg_branch;
 mod hostname;
 mod java;
 mod jobs;
+mod jujutsu;
 mod julia;
 mod kotlin;
 mod kubernetes;
@@ -163,6 +164,7 @@ pub fn handle<'a>(module: &str, context: &'a Context) -> Option<Module<'a>> {
             "java" => java::module(context),
             "jobs" => jobs::module(context),
             "julia" => julia::module(context),
+            "jujutsu" => jujutsu::module(context),
             "kotlin" => kotlin::module(context),
             "kubernetes" => kubernetes::module(context),
             "line_break" => line_break::module(context),
