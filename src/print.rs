@@ -43,6 +43,21 @@ where
     fn width_graphemes(&self) -> usize {
         self.as_ref()
             .graphemes(true)
+            .scan(false, |in_escape, ch| {
+                match (*in_escape, ch.as_bytes().first()) {
+                    (false, Some(b'\x1b')) => {
+                        *in_escape = true;
+                        Some(None)
+                    }
+                    (true, Some(b'm')) => {
+                        *in_escape = false;
+                        Some(None)
+                    }
+                    (true, _) => Some(None),
+                    (false, _) => Some(Some(ch)),
+                }
+            })
+            .flatten()
             .map(Grapheme)
             .map(|g| g.width())
             .sum()
