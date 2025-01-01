@@ -32,3 +32,6 @@ docs/.vitepress/cache/
 
 # Ignore pkg files within the install directory
 install/**/*.pkg
+
+# generated from direnv use flake
+.direnv
