@@ -23,7 +23,7 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
             })
             .map(|variable| match variable {
                 "commit_info" => {
-                    let output = &context
+                    let output = context
                         .exec_cmd(
                             "jj",
                             &[
@@ -39,7 +39,7 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
                             ],
                         )?
                         .stdout;
-                    Some(Ok(output.to_owned()))
+                    Some(Ok(output))
                 }
                 _ => None,
             })
