@@ -56,9 +56,9 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
 }
 
 /// Represents the parsed output from a git diff.
-struct GitDiff<'a> {
-    added: &'a str,
-    deleted: &'a str,
+pub struct GitDiff<'a> {
+    pub added: &'a str,
+    pub deleted: &'a str,
 }
 
 impl<'a> GitDiff<'a> {
