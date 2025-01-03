@@ -352,9 +352,9 @@ fn count_diff_lines(
 
 /// Represents the parsed output from a git diff.
 #[derive(Default)]
-struct GitDiff {
-    added: String,
-    deleted: String,
+pub struct GitDiff {
+    pub added: String,
+    pub deleted: String,
 }
 
 impl GitDiff {

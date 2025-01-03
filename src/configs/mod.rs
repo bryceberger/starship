@@ -215,6 +215,8 @@ pub struct FullConfig<'a> {
     #[serde(borrow)]
     jujutsu: jujutsu::JujutsuConfig<'a>,
     #[serde(borrow)]
+    jujutsu_diff: jujutsu::JujutsuDiffConfig<'a>,
+    #[serde(borrow)]
     julia: julia::JuliaConfig<'a>,
     #[serde(borrow)]
     kotlin: kotlin::KotlinConfig<'a>,
