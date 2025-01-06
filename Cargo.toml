@@ -29,10 +29,11 @@ The minimal, blazing-fast, and infinitely customizable prompt for any shell! ☄
 """
 
 [features]
-default = ["battery", "notify"]
+default = ["battery", "notify", "jj"]
 battery = ["starship-battery"]
 config-schema = ["schemars"]
 notify = ["notify-rust"]
+jj = ["jj-lib"]
 
 [dependencies]
 chrono = { version = "0.4.41", default-features = false, features = ["clock", "std", "wasmbind"] }
@@ -88,6 +89,8 @@ yaml-rust2 = "0.10.3"
 guess_host_triple = "0.1.5"
 home = "0.5.11"
 shell-words = "1.1.0"
+
+jj-lib = { version = "0.27", optional = true }
 
 [dependencies.schemars]
 version = "0.9.0"
