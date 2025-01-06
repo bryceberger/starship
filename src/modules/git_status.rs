@@ -32,7 +32,7 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
     let config: GitStatusConfig = GitStatusConfig::try_load(module.config);
 
     // Return None if not in git repository
-    let repo = context.get_repo().ok()?;
+    let repo = context.get_repo()?.as_git()?;
 
     if repo.kind.is_bare() {
         log::debug!("This is a bare repository, git_status is not applicable");
@@ -133,7 +133,7 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
 
 struct GitStatusInfo<'a> {
     context: &'a Context<'a>,
-    repo: &'a context::Repo,
+    repo: &'a context::GitRepo,
     config: GitStatusConfig<'a>,
     repo_status: OnceLock<Option<RepoStatus>>,
     stashed_count: OnceLock<Option<usize>>,
@@ -142,7 +142,7 @@ struct GitStatusInfo<'a> {
 impl<'a> GitStatusInfo<'a> {
     pub fn load(
         context: &'a Context,
-        repo: &'a context::Repo,
+        repo: &'a context::GitRepo,
         config: GitStatusConfig<'a>,
     ) -> Self {
         Self {
@@ -213,7 +213,7 @@ impl<'a> GitStatusInfo<'a> {
 /// Gets the number of files in various git states (staged, modified, deleted, etc...)
 fn get_repo_status(
     context: &Context,
-    repo: &context::Repo,
+    repo: &context::GitRepo,
     config: &GitStatusConfig,
 ) -> Option<RepoStatus> {
     log::debug!("New repo status created");
@@ -253,7 +253,7 @@ fn get_repo_status(
     Some(repo_status)
 }
 
-fn get_stashed_count(repo: &context::Repo) -> Option<usize> {
+fn get_stashed_count(repo: &context::GitRepo) -> Option<usize> {
     let repo = repo.open();
     let reference = match repo.try_find_reference("refs/stash") {
         // Only proceed if the found reference has the expected name (not tags/refs/stash etc.)
