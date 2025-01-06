@@ -19,7 +19,7 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
         return None;
     };
 
-    let repo = context.get_repo().ok()?;
+    let repo = context.get_repo()?.as_git()?;
     let mut git_args = vec!["diff", "--shortstat"];
     if config.ignore_submodules {
         git_args.push("--ignore-submodules");
