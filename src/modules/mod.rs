@@ -161,6 +161,8 @@ pub fn handle<'a>(module: &str, context: &'a Context) -> Option<Module<'a>> {
             "jobs" => jobs::module(context),
             #[cfg(feature = "jj")]
             "jujutsu_commit" => jujutsu::module_commit(context),
+            #[cfg(feature = "jj")]
+            "jujutsu_diff" => jujutsu::module_diff(context),
             "julia" => julia::module(context),
             "kotlin" => kotlin::module(context),
             "kubernetes" => kubernetes::module(context),
@@ -289,6 +291,8 @@ pub fn description(module: &str) -> &'static str {
         "jobs" => "The current number of jobs running",
         #[cfg(feature = "jj")]
         "jujutsu_commit" => "The current JJ commit",
+        #[cfg(feature = "jj")]
+        "jujutsu_diff" => "The currently added/deleted lines in your JJ repo",
         "julia" => "The currently installed version of Julia",
         "kotlin" => "The currently installed version of Kotlin",
         "kubernetes" => "The current Kubernetes context name and, if set, the namespace",
