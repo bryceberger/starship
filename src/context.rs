@@ -408,6 +408,39 @@ impl<'a> Context<'a> {
 }
 
 fn init_repo(current_dir: &Path) -> Option<Repo> {
+    #[cfg(feature = "jj")]
+    if let Some(repo) = init_repo_jj(current_dir) {
+        return Some(repo);
+    }
+    if let Some(repo) = init_repo_git(current_dir) {
+        return Some(repo);
+    }
+    None
+}
+
+#[cfg(feature = "jj")]
+fn init_repo_jj(cwd: &Path) -> Option<Repo> {
+    use jj_lib::{config::StackedConfig, settings::UserSettings, workspace::Workspace};
+
+    fn ok<T, E: std::fmt::Display>(r: Result<T, E>) -> Option<T> {
+        r.inspect_err(|e| log::warn!("while loading jj repo: {e}"))
+            .ok()
+    }
+
+    let workspace_dir = cwd.ancestors().find(|path| path.join(".jj").is_dir())?;
+
+    let settings = ok(UserSettings::from_config(StackedConfig::with_defaults()))?;
+    let stf = Default::default();
+    let wcf = jj_lib::workspace::default_working_copy_factories();
+    let workspace = ok(Workspace::load(&settings, workspace_dir, &stf, &wcf))?;
+    Some(Repo::JJ(JJRepo {
+        workdir: workspace_dir.into(),
+        repo: ok(workspace.repo_loader().load_at_head())?,
+        workspace_name: workspace.workspace_name().into(),
+    }))
+}
+
+fn init_repo_git(current_dir: &Path) -> Option<Repo> {
     // custom open options
     let mut git_open_opts_map = git_sec::trust::Mapping::<gix::open::Options>::default();
 
@@ -728,20 +761,40 @@ pub struct GitRepo {
     pub kind: Kind,
 }
 
+#[cfg(feature = "jj")]
+pub struct JJRepo {
+    pub workdir: PathBuf,
+    pub workspace_name: jj_lib::ref_name::WorkspaceNameBuf,
+    pub repo: std::sync::Arc<jj_lib::repo::ReadonlyRepo>,
+}
+
 pub enum Repo {
     Git(GitRepo),
+    #[cfg(feature = "jj")]
+    JJ(JJRepo),
 }
 
 impl Repo {
     pub fn workdir(&self) -> Option<&Path> {
         match self {
             Repo::Git(repo) => repo.workdir.as_deref(),
+            #[cfg(feature = "jj")]
+            Repo::JJ(repo) => Some(&repo.workdir),
         }
     }
 
     pub fn as_git(&self) -> Option<&GitRepo> {
         match self {
             Repo::Git(repo) => Some(repo),
+            #[cfg(feature = "jj")]
+            Repo::JJ(_) => None,
+        }
+    }
+
+    #[cfg(feature = "jj")]
+    pub fn as_jj(&self) -> Option<&JJRepo> {
+        match self {
+            Repo::JJ(repo) => Some(repo),
             _ => None,
         }
     }
