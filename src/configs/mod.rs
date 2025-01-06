@@ -49,6 +49,8 @@ pub mod hg_branch;
 pub mod hostname;
 pub mod java;
 pub mod jobs;
+#[cfg(feature = "jj")]
+pub mod jujutsu;
 pub mod julia;
 pub mod kotlin;
 pub mod kubernetes;
@@ -211,6 +213,9 @@ pub struct FullConfig<'a> {
     java: java::JavaConfig<'a>,
     #[serde(borrow)]
     jobs: jobs::JobsConfig<'a>,
+    #[cfg(feature = "jj")]
+    #[serde(borrow)]
+    jujutsu_commit: jujutsu::JujutsuCommitConfig<'a>,
     #[serde(borrow)]
     julia: julia::JuliaConfig<'a>,
     #[serde(borrow)]
