@@ -53,6 +53,8 @@ pub const ALL_MODULES: &[&str] = &[
     "hostname",
     "java",
     "jobs",
+    #[cfg(feature = "jj")]
+    "jujutsu_commit",
     "julia",
     "kotlin",
     "kubernetes",
