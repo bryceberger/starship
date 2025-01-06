@@ -2945,7 +2945,7 @@ dependencies = [
  "once_cell",
  "pest",
  "pest_derive",
- "pollster",
+ "pollster 0.3.0",
  "prost",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
@@ -3672,6 +3672,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22686f4785f02a4fcc856d3b3bb19bf6c8160d103f7a99cc258bddd0251dc7f2"
 
 [[package]]
+name = "pollster"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f3a9f18d041e6d0e102a0a46750538147e5e8992d3b4873aaafee2520b00ce3"
+
+[[package]]
 name = "portable-atomic"
 version = "1.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4314,6 +4320,7 @@ dependencies = [
  "deelevate",
  "dirs 6.0.0",
  "dunce",
+ "futures",
  "gix 0.72.1",
  "guess_host_triple",
  "home",
@@ -4331,6 +4338,7 @@ dependencies = [
  "path-slash",
  "pest",
  "pest_derive",
+ "pollster 0.4.0",
  "process_control",
  "quick-xml",
  "rand 0.9.1",

@@ -219,6 +219,9 @@ pub struct FullConfig<'a> {
     #[cfg(feature = "jj")]
     #[serde(borrow)]
     jujutsu_commit: jujutsu::JujutsuCommitConfig<'a>,
+    #[cfg(feature = "jj")]
+    #[serde(borrow)]
+    jujutsu_diff: jujutsu::JujutsuDiffConfig<'a>,
     #[serde(borrow)]
     julia: julia::JuliaConfig<'a>,
     #[serde(borrow)]
