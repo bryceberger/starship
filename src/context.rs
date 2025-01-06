@@ -51,7 +51,7 @@ pub struct Context<'a> {
     pub properties: Properties,
 
     /// Private field to store Git information for modules who need it
-    repo: OnceLock<Result<Repo, Box<gix::discover::Error>>>,
+    repo: OnceLock<Option<Repo>>,
 
     /// The shell the user is assumed to be running
     pub shell: Shell,
@@ -287,9 +287,15 @@ impl<'a> Context<'a> {
     }
 
     /// Will lazily get repo root and branch when a module requests it.
-    pub fn get_repo(&self) -> Result<&Repo, &gix::discover::Error> {
+    pub fn get_repo(&self) -> Option<&Repo> {
         self.repo
-            .get_or_init(|| -> Result<Repo, Box<gix::discover::Error>> {
+            .get_or_init(|| -> Option<Repo> {
+                if let Some(out) = self.exec_cmd("jj", &["--ignore-working-copy", "root"]) {
+                    return Some(Repo::JJ(JJRepo {
+                        workdir: Some(out.stdout.trim().into()),
+                    }));
+                }
+
                 // custom open options
                 let mut git_open_opts_map =
                     git_sec::trust::Mapping::<gix::open::Options>::default();
@@ -318,21 +324,16 @@ impl<'a> Context<'a> {
                         ..gix::open::Permissions::default_for_level(git_sec::Trust::Full)
                     });
 
-                let shared_repo =
-                    match ThreadSafeRepository::discover_with_environment_overrides_opts(
-                        &self.current_dir,
-                        gix::discover::upwards::Options {
-                            match_ceiling_dir_or_error: false,
-                            ..Default::default()
-                        },
-                        git_open_opts_map,
-                    ) {
-                        Ok(repo) => repo,
-                        Err(e) => {
-                            log::debug!("Failed to find git repo: {e}");
-                            return Err(Box::new(e));
-                        }
-                    };
+                let shared_repo = ThreadSafeRepository::discover_with_environment_overrides_opts(
+                    &self.current_dir,
+                    gix::discover::upwards::Options {
+                        match_ceiling_dir_or_error: false,
+                        ..Default::default()
+                    },
+                    git_open_opts_map,
+                )
+                .inspect_err(|e| log::debug!("Failed to find git repo: {e}"))
+                .ok()?;
 
                 let repository = shared_repo.to_thread_local();
                 log::trace!(
@@ -350,7 +351,7 @@ impl<'a> Context<'a> {
                     .boolean("core.fsmonitor")
                     .unwrap_or(false);
 
-                Ok(Repo {
+                Some(Repo::Git(GitRepo {
                     repo: shared_repo,
                     branch: branch.map(|b| b.shorten().to_string()),
                     workdir: repository.workdir().map(PathBuf::from),
@@ -359,10 +360,9 @@ impl<'a> Context<'a> {
                     remote,
                     fs_monitor_value_is_true,
                     kind: repository.kind(),
-                })
+                }))
             })
             .as_ref()
-            .map_err(std::convert::AsRef::as_ref)
     }
 
     pub fn dir_contents(&self) -> Result<&DirContents, &std::io::Error> {
@@ -630,17 +630,17 @@ impl DirContents {
     }
 }
 
-pub struct Repo {
+pub struct GitRepo {
     pub repo: ThreadSafeRepository,
+
+    /// If `current_dir` is a git repository or is contained within one,
+    /// this is the path to the root of that repo.
+    pub workdir: Option<PathBuf>,
 
     /// If `current_dir` is a git repository or is contained within one,
     /// this is the short name of the current branch name of that repo,
     /// i.e. `main`.
     pub branch: Option<String>,
-
-    /// If `current_dir` is a git repository or is contained within one,
-    /// this is the path to the root of that repo.
-    pub workdir: Option<PathBuf>,
 
     /// The path of the repository's `.git` directory.
     pub path: PathBuf,
@@ -659,7 +659,39 @@ pub struct Repo {
     pub kind: Kind,
 }
 
+pub struct JJRepo {
+    pub workdir: Option<PathBuf>,
+}
+
+pub enum Repo {
+    Git(GitRepo),
+    JJ(JJRepo),
+}
+
 impl Repo {
+    pub fn workdir(&self) -> Option<&Path> {
+        match self {
+            Repo::Git(r) => r.workdir.as_deref(),
+            Repo::JJ(r) => r.workdir.as_deref(),
+        }
+    }
+
+    pub fn as_git(&self) -> Option<&GitRepo> {
+        match self {
+            Repo::Git(repo) => Some(repo),
+            _ => None,
+        }
+    }
+
+    pub fn as_jj(&self) -> Option<&JJRepo> {
+        match self {
+            Repo::JJ(repo) => Some(repo),
+            _ => None,
+        }
+    }
+}
+
+impl GitRepo {
     /// Opens the associated git repository.
     pub fn open(&self) -> Repository {
         self.repo.to_thread_local()

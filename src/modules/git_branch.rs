@@ -24,7 +24,7 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
         config.truncation_length as usize
     };
 
-    let repo = context.get_repo().ok()?;
+    let repo = context.get_repo()?.as_git()?;
 
     if config.only_attached && repo.open().head().ok()?.is_detached() {
         return None;
