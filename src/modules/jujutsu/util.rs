@@ -23,11 +23,11 @@ use futures::executor::block_on_stream;
 use jj_lib::{
     commit::Commit,
     conflicts::{
-        materialize_merge_result_to_bytes, ConflictMarkerStyle, MaterializedTreeDiffEntry,
-        MaterializedTreeValue,
+        ConflictMarkerStyle, MaterializedFileValue, MaterializedTreeDiffEntry,
+        MaterializedTreeValue, materialize_merge_result_to_bytes,
     },
     copies::CopyRecords,
-    diff::{find_line_ranges, CompareBytesExactly, Diff, DiffHunkKind},
+    diff::{CompareBytesExactly, Diff, DiffHunkKind, find_line_ranges},
     repo::Repo,
     repo_path::RepoPath,
 };
@@ -80,7 +80,7 @@ fn diff_content(path: &RepoPath, value: MaterializedTreeValue) -> io::Result<Vec
         MaterializedTreeValue::AccessDenied(err) => {
             Ok(format!("Access denied: {err}").into_bytes())
         }
-        MaterializedTreeValue::File { mut reader, .. } => {
+        MaterializedTreeValue::File(MaterializedFileValue { mut reader, .. }) => {
             let mut buf = Vec::new();
             reader.read_to_end(&mut buf)?;
             Ok(buf)
