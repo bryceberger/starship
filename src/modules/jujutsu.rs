@@ -130,7 +130,7 @@ pub fn module_diff<'a>(context: &'a Context) -> Option<Module<'a>> {
 fn get_working_copy(repo: &JJRepo, mod_name: &str) -> Option<Commit> {
     repo.repo
         .store()
-        .get_commit(repo.repo.view().get_wc_commit_id(&repo.workspace_id)?)
+        .get_commit(repo.repo.view().get_wc_commit_id(&repo.workspace_name)?)
         .or_log(mod_name)
 }
 
