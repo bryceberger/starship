@@ -417,7 +417,7 @@ fn init_repo_jj(cwd: &Path) -> Option<Repo> {
     Some(Repo::JJ(JJRepo {
         workdir: workspace_dir.into(),
         repo: ok(workspace.repo_loader().load_at_head())?,
-        workspace_id: workspace.workspace_id().clone(),
+        workspace_name: workspace.workspace_name().into(),
     }))
 }
 
@@ -687,7 +687,7 @@ pub struct GitRepo {
 #[cfg(feature = "jj")]
 pub struct JJRepo {
     pub workdir: PathBuf,
-    pub workspace_id: jj_lib::op_store::WorkspaceId,
+    pub workspace_name: jj_lib::ref_name::WorkspaceNameBuf,
     pub repo: std::sync::Arc<jj_lib::repo::ReadonlyRepo>,
 }
 
