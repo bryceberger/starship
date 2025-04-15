@@ -31,6 +31,7 @@ pub fn module_commit<'a>(context: &'a Context) -> Option<Module<'a>> {
     let index = ctx.populate(repo.repo.as_ref()).or_log(mod_name)?;
 
     let (prefix, rest) = shortest(repo.repo.as_ref(), &index, wc.change_id(), 8);
+    let op_id = repo.repo.op_id().to_string();
 
     let desc = wc.description().lines().next();
     let (desc, desc_style) = desc.filter(|d| !d.trim().is_empty()).map_or(
@@ -50,6 +51,7 @@ pub fn module_commit<'a>(context: &'a Context) -> Option<Module<'a>> {
                 "prefix" => Some(Ok(prefix.as_str())),
                 "rest" => Some(Ok(rest.as_str())),
                 "description" => Some(Ok(desc)),
+                "operation" => Some(Ok(&op_id)),
                 _ => None,
             })
             .parse(None, Some(context))
