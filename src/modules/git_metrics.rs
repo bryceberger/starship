@@ -23,7 +23,7 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
         return None;
     };
 
-    let repo = context.get_repo().ok()?;
+    let repo = context.get_repo()?.as_git()?;
     let gix_repo = repo.open();
     if gix_repo.is_bare() {
         return None;
@@ -97,7 +97,7 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
                                     ..
                                 } => {
                                     diff.added += count_lines(
-                                        location,
+                                        &location,
                                         id.as_ref().into(),
                                         *entry_mode,
                                         tree_index_cache,
@@ -111,7 +111,7 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
                                     ..
                                 } => {
                                     diff.deleted += count_lines(
-                                        location,
+                                        &location,
                                         id.as_ref().into(),
                                         *entry_mode,
                                         tree_index_cache,
@@ -150,7 +150,7 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
                                 } => {
                                     if *copy {
                                         diff.added += count_lines(
-                                            location,
+                                            &location,
                                             id.as_ref().into(),
                                             *entry_mode,
                                             tree_index_cache,
@@ -161,7 +161,7 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
                                             source_location.as_ref(),
                                             source_id.as_ref().to_owned(),
                                             *source_entry_mode,
-                                            location,
+                                            &location,
                                             id.as_ref().to_owned(),
                                             *entry_mode,
                                             tree_index_cache,
