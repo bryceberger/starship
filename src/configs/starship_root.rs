@@ -49,6 +49,10 @@ pub const PROMPT_ORDER: &[&str] = &[
     "git_status",
     "hg_branch",
     "hg_state",
+    #[cfg(feature = "jj")]
+    "jujutsu_commit",
+    #[cfg(feature = "jj")]
+    "jujutsu_diff",
     "pijul_channel",
     "docker_context",
     "package",

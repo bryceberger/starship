@@ -52,12 +52,12 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
     // Attempt repository path contraction (if we are in a git repository)
     // Otherwise use the logical path, automatically contracting
     let repo = if config.truncate_to_repo || config.repo_root_style.is_some() {
-        context.get_repo().ok()
+        context.get_repo()
     } else {
         None
     };
     let dir_string = if config.truncate_to_repo {
-        repo.and_then(|r| r.workdir.as_ref())
+        repo.and_then(|r| r.workdir())
             .filter(|&root| root != &home_dir)
             .and_then(|root| contract_repo_path(display_dir, root))
     } else {
@@ -103,7 +103,7 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
         String::new()
     };
 
-    let path_vec = match &repo.and_then(|r| r.workdir.as_ref()) {
+    let path_vec = match &repo.and_then(|r| r.workdir()) {
         Some(repo_root) if config.repo_root_style.is_some() => {
             let contracted_path = contract_repo_path(display_dir, repo_root)?;
             let repo_path_vec: Vec<&str> = contracted_path.split('/').collect();
