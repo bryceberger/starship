@@ -19,18 +19,19 @@
 
 use std::io;
 
-use futures::executor::block_on_stream;
+use futures::executor::{block_on, block_on_stream};
 use jj_lib::{
     commit::Commit,
     conflicts::{
-        ConflictMarkerStyle, MaterializedFileValue, MaterializedTreeDiffEntry,
-        MaterializedTreeValue, materialize_merge_result_to_bytes,
+        ConflictMarkerStyle, MaterializedFileConflictValue, MaterializedFileValue,
+        MaterializedTreeDiffEntry, MaterializedTreeValue, materialize_merge_result_to_bytes,
     },
     copies::CopyRecords,
     diff::{CompareBytesExactly, Diff, DiffHunkKind, find_line_ranges},
     repo::Repo,
     repo_path::RepoPath,
 };
+use tokio::io::AsyncReadExt;
 
 use super::OrLog;
 use crate::context::JJRepo;
@@ -82,18 +83,16 @@ fn diff_content(path: &RepoPath, value: MaterializedTreeValue) -> io::Result<Vec
         }
         MaterializedTreeValue::File(MaterializedFileValue { mut reader, .. }) => {
             let mut buf = Vec::new();
-            reader.read_to_end(&mut buf)?;
+            block_on(reader.read_to_end(&mut buf))?;
             Ok(buf)
         }
         MaterializedTreeValue::Symlink { id: _, target } => Ok(target.into_bytes()),
         MaterializedTreeValue::GitSubmodule(id) => {
             Ok(format!("Git submodule checked out at {id}").into_bytes())
         }
-        MaterializedTreeValue::FileConflict {
-            id: _,
-            contents,
-            executable: _,
-        } => Ok(materialize_merge_result_to_bytes(&contents, ConflictMarkerStyle::Git).into()),
+        MaterializedTreeValue::FileConflict(MaterializedFileConflictValue { contents, .. }) => {
+            Ok(materialize_merge_result_to_bytes(&contents, ConflictMarkerStyle::Git).into())
+        }
         MaterializedTreeValue::OtherConflict { id } => Ok(id.describe().into_bytes()),
         MaterializedTreeValue::Tree(id) => {
             panic!("Unexpected tree with id {id:?} in diff at path {path:?}");
