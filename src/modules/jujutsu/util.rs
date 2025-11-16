@@ -23,13 +23,15 @@ use futures::executor::{block_on, block_on_stream};
 use jj_lib::{
     commit::Commit,
     conflicts::{
-        ConflictMarkerStyle, MaterializedFileConflictValue, MaterializedFileValue,
-        MaterializedTreeDiffEntry, MaterializedTreeValue, materialize_merge_result_to_bytes,
+        ConflictMarkerStyle, ConflictMaterializeOptions, MaterializedFileConflictValue,
+        MaterializedFileValue, MaterializedTreeDiffEntry, MaterializedTreeValue,
+        materialize_merge_result_to_bytes,
     },
     copies::CopyRecords,
-    diff::{CompareBytesExactly, Diff, DiffHunkKind, find_line_ranges},
+    diff::{CompareBytesExactly, ContentDiff, DiffHunkKind, find_line_ranges},
     repo::Repo,
     repo_path::RepoPath,
+    tree_merge::MergeOptions,
 };
 use tokio::io::AsyncReadExt;
 
@@ -59,7 +61,7 @@ pub fn run_diff(
 }
 
 fn get_diff_stat(left: &[u8], right: &[u8]) -> (usize, usize) {
-    let diff = Diff::for_tokenizer([left, right], find_line_ranges, CompareBytesExactly);
+    let diff = ContentDiff::for_tokenizer([left, right], find_line_ranges, CompareBytesExactly);
     let mut added = 0;
     let mut removed = 0;
     for hunk in diff.hunks() {
@@ -91,7 +93,15 @@ fn diff_content(path: &RepoPath, value: MaterializedTreeValue) -> io::Result<Vec
             Ok(format!("Git submodule checked out at {id}").into_bytes())
         }
         MaterializedTreeValue::FileConflict(MaterializedFileConflictValue { contents, .. }) => {
-            Ok(materialize_merge_result_to_bytes(&contents, ConflictMarkerStyle::Git).into())
+            let opts = ConflictMaterializeOptions {
+                marker_style: ConflictMarkerStyle::Git,
+                marker_len: None,
+                merge: MergeOptions {
+                    hunk_level: jj_lib::files::FileMergeHunkLevel::Line,
+                    same_change: jj_lib::merge::SameChange::Accept,
+                },
+            };
+            Ok(materialize_merge_result_to_bytes(&contents, &opts).into())
         }
         MaterializedTreeValue::OtherConflict { id } => Ok(id.describe().into_bytes()),
         MaterializedTreeValue::Tree(id) => {

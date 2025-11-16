@@ -1,10 +1,11 @@
-use futures::executor::block_on_stream;
+use futures::executor::{block_on, block_on_stream};
 use jj_lib::{
     backend::ChangeId,
     commit::Commit,
     conflicts::materialized_diff_stream,
     copies::CopyRecords,
     id_prefix::{IdPrefixContext, IdPrefixIndex},
+    index::IndexResult,
     matchers::EverythingMatcher,
     repo::{ReadonlyRepo, Repo},
     rewrite::merge_commit_trees,
@@ -30,7 +31,8 @@ pub fn module_commit<'a>(context: &'a Context) -> Option<Module<'a>> {
     let ctx = IdPrefixContext::new(Default::default());
     let index = ctx.populate(repo.repo.as_ref()).or_log(mod_name)?;
 
-    let (prefix, rest) = shortest(repo.repo.as_ref(), &index, wc.change_id(), 8);
+    let (prefix, rest) =
+        shortest(repo.repo.as_ref(), &index, wc.change_id(), 8).or_log(mod_name)?;
     let op_id = repo.repo.op_id().to_string();
 
     let desc = wc.description().lines().next();
@@ -80,7 +82,7 @@ pub fn module_diff<'a>(context: &'a Context) -> Option<Module<'a>> {
         .parents()
         .collect::<Result<Vec<_>, _>>()
         .or_log(mod_name)?;
-    let from_tree = merge_commit_trees(repo.repo.as_ref(), &parents).or_log(mod_name)?;
+    let from_tree = block_on(merge_commit_trees(repo.repo.as_ref(), &parents)).or_log(mod_name)?;
     let to_tree = wc.tree().or_log(mod_name)?;
 
     let mut copy_records = CopyRecords::default();
@@ -141,12 +143,12 @@ fn shortest(
     index: &IdPrefixIndex,
     id: &ChangeId,
     total_len: usize,
-) -> (String, String) {
-    let prefix_len = index.shortest_change_prefix_len(repo, id);
+) -> IndexResult<(String, String)> {
+    let prefix_len = index.shortest_change_prefix_len(repo, id)?;
     let mut hex = id.reverse_hex();
     hex.truncate(total_len);
     let rest = hex.split_off(prefix_len);
-    (hex, rest)
+    Ok((hex, rest))
 }
 
 trait OrLog {
