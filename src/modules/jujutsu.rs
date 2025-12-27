@@ -83,7 +83,7 @@ pub fn module_diff<'a>(context: &'a Context) -> Option<Module<'a>> {
         .collect::<Result<Vec<_>, _>>()
         .or_log(mod_name)?;
     let from_tree = block_on(merge_commit_trees(repo.repo.as_ref(), &parents)).or_log(mod_name)?;
-    let to_tree = wc.tree().or_log(mod_name)?;
+    let to_tree = wc.tree();
 
     let mut copy_records = CopyRecords::default();
     for p in &parents {

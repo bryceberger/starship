@@ -29,6 +29,7 @@ use jj_lib::{
     },
     copies::CopyRecords,
     diff::{CompareBytesExactly, ContentDiff, DiffHunkKind, find_line_ranges},
+    merge::Diff,
     repo::Repo,
     repo_path::RepoPath,
     tree_merge::MergeOptions,
@@ -45,13 +46,11 @@ pub fn run_diff(
     diff_tree.try_fold(
         (0, 0),
         |mut sums, MaterializedTreeDiffEntry { path, values }| {
-            let (left, right) = values?;
-            let left_path = path.source();
-            let right_path = path.target();
-            let left_content = diff_content(left_path, left)?;
-            let right_content = diff_content(right_path, right)?;
+            let Diff { before, after } = values?;
+            let content_before = diff_content(path.source(), before)?;
+            let content_after = diff_content(path.target(), after)?;
 
-            let (added, deleted) = get_diff_stat(&left_content, &right_content);
+            let (added, deleted) = get_diff_stat(&content_before, &content_after);
             sums.0 += added;
             sums.1 += deleted;
 
