@@ -51,8 +51,8 @@ pub struct Context<'a> {
     /// Properties to provide to modules.
     pub properties: Properties,
 
-    /// Private field to store Git information for modules who need it
-    repo: OnceLock<Result<Repo, Box<gix::discover::Error>>>,
+    /// Private field to store repository information for modules who need it
+    repo: OnceLock<Option<Repo>>,
 
     /// The shell the user is assumed to be running
     pub shell: Shell,
@@ -310,82 +310,10 @@ impl<'a> Context<'a> {
     }
 
     /// Will lazily get repo root and branch when a module requests it.
-    pub fn get_repo(&self) -> Result<&Repo, &gix::discover::Error> {
+    pub fn get_repo(&self) -> Option<&Repo> {
         self.repo
-            .get_or_init(|| -> Result<Repo, Box<gix::discover::Error>> {
-                // custom open options
-                let mut git_open_opts_map =
-                    git_sec::trust::Mapping::<gix::open::Options>::default();
-
-                // Load all the configuration as it affects aspects of the
-                // `git_status` and `git_metrics` modules.
-                let config = gix::open::permissions::Config {
-                    git_binary: true,
-                    system: true,
-                    git: true,
-                    user: true,
-                    env: true,
-                    includes: true,
-                };
-                // change options for config permissions without touching anything else
-                git_open_opts_map.reduced =
-                    git_open_opts_map
-                        .reduced
-                        .permissions(gix::open::Permissions {
-                            config,
-                            ..gix::open::Permissions::default_for_level(git_sec::Trust::Reduced)
-                        });
-                git_open_opts_map.full =
-                    git_open_opts_map.full.permissions(gix::open::Permissions {
-                        config,
-                        ..gix::open::Permissions::default_for_level(git_sec::Trust::Full)
-                    });
-
-                let shared_repo =
-                    match ThreadSafeRepository::discover_with_environment_overrides_opts(
-                        &self.current_dir,
-                        gix::discover::upwards::Options {
-                            match_ceiling_dir_or_error: false,
-                            ..Default::default()
-                        },
-                        git_open_opts_map,
-                    ) {
-                        Ok(repo) => repo,
-                        Err(e) => {
-                            log::debug!("Failed to find git repo: {e}");
-                            return Err(Box::new(e));
-                        }
-                    };
-
-                let repository = shared_repo.to_thread_local();
-                log::trace!(
-                    "Found git repo: {repository:?}, (trust: {:?})",
-                    repository.git_dir_trust()
-                );
-
-                let branch = get_current_branch(&repository);
-                let remote =
-                    get_remote_repository_info(&repository, branch.as_ref().map(AsRef::as_ref));
-                let path = repository.path().to_path_buf();
-
-                let fs_monitor_value_is_true = repository
-                    .config_snapshot()
-                    .boolean("core.fsmonitor")
-                    .unwrap_or(false);
-
-                Ok(Repo {
-                    repo: shared_repo,
-                    branch: branch.map(|b| b.shorten().to_string()),
-                    workdir: repository.workdir().map(PathBuf::from),
-                    path,
-                    state: repository.state(),
-                    remote,
-                    fs_monitor_value_is_true,
-                    kind: repository.kind(),
-                })
-            })
+            .get_or_init(|| init_repo(&self.current_dir))
             .as_ref()
-            .map_err(std::convert::AsRef::as_ref)
     }
 
     pub fn dir_contents(&self) -> Result<&DirContents, &std::io::Error> {
@@ -477,6 +405,107 @@ impl<'a> Context<'a> {
     pub fn get_config_path_os(&self) -> Option<OsString> {
         get_config_path_os(&self.env)
     }
+}
+
+fn init_repo(current_dir: &Path) -> Option<Repo> {
+    #[cfg(feature = "jj")]
+    if let Some(repo) = init_repo_jj(current_dir) {
+        return Some(repo);
+    }
+    if let Some(repo) = init_repo_git(current_dir) {
+        return Some(repo);
+    }
+    None
+}
+
+#[cfg(feature = "jj")]
+fn init_repo_jj(cwd: &Path) -> Option<Repo> {
+    use jj_lib::{config::StackedConfig, settings::UserSettings, workspace::Workspace};
+
+    fn ok<T, E: std::fmt::Display>(r: Result<T, E>) -> Option<T> {
+        r.inspect_err(|e| log::warn!("while loading jj repo: {e}"))
+            .ok()
+    }
+
+    let workspace_dir = cwd.ancestors().find(|path| path.join(".jj").is_dir())?;
+
+    let settings = ok(UserSettings::from_config(StackedConfig::with_defaults()))?;
+    let stf = Default::default();
+    let wcf = jj_lib::workspace::default_working_copy_factories();
+    let workspace = ok(Workspace::load(&settings, workspace_dir, &stf, &wcf))?;
+    Some(Repo::JJ(JJRepo {
+        workdir: workspace_dir.into(),
+        repo: ok(workspace.repo_loader().load_at_head())?,
+        workspace_name: workspace.workspace_name().into(),
+    }))
+}
+
+fn init_repo_git(current_dir: &Path) -> Option<Repo> {
+    // custom open options
+    let mut git_open_opts_map = git_sec::trust::Mapping::<gix::open::Options>::default();
+
+    // Load all the configuration as it affects aspects of the
+    // `git_status` and `git_metrics` modules.
+    let config = gix::open::permissions::Config {
+        git_binary: true,
+        system: true,
+        git: true,
+        user: true,
+        env: true,
+        includes: true,
+    };
+    // change options for config permissions without touching anything else
+    git_open_opts_map.reduced = git_open_opts_map
+        .reduced
+        .permissions(gix::open::Permissions {
+            config,
+            ..gix::open::Permissions::default_for_level(git_sec::Trust::Reduced)
+        });
+    git_open_opts_map.full = git_open_opts_map.full.permissions(gix::open::Permissions {
+        config,
+        ..gix::open::Permissions::default_for_level(git_sec::Trust::Full)
+    });
+
+    let shared_repo = match ThreadSafeRepository::discover_with_environment_overrides_opts(
+        &current_dir,
+        gix::discover::upwards::Options {
+            match_ceiling_dir_or_error: false,
+            ..Default::default()
+        },
+        git_open_opts_map,
+    ) {
+        Ok(repo) => repo,
+        Err(e) => {
+            log::debug!("Failed to find git repo: {e}");
+            return None;
+        }
+    };
+
+    let repository = shared_repo.to_thread_local();
+    log::trace!(
+        "Found git repo: {repository:?}, (trust: {:?})",
+        repository.git_dir_trust()
+    );
+
+    let branch = get_current_branch(&repository);
+    let remote = get_remote_repository_info(&repository, branch.as_ref().map(AsRef::as_ref));
+    let path = repository.path().to_path_buf();
+
+    let fs_monitor_value_is_true = repository
+        .config_snapshot()
+        .boolean("core.fsmonitor")
+        .unwrap_or(false);
+
+    Some(Repo::Git(GitRepo {
+        repo: shared_repo,
+        branch: branch.map(|b| b.shorten().to_string()),
+        workdir: repository.workdir().map(PathBuf::from),
+        path,
+        state: repository.state(),
+        remote,
+        fs_monitor_value_is_true,
+        kind: repository.kind(),
+    }))
 }
 
 impl Default for Context<'_> {
@@ -703,7 +732,7 @@ impl DirContents {
     }
 }
 
-pub struct Repo {
+pub struct GitRepo {
     pub repo: ThreadSafeRepository,
 
     /// If `current_dir` is a git repository or is contained within one,
@@ -732,7 +761,46 @@ pub struct Repo {
     pub kind: Kind,
 }
 
+#[cfg(feature = "jj")]
+pub struct JJRepo {
+    pub workdir: PathBuf,
+    pub workspace_name: jj_lib::ref_name::WorkspaceNameBuf,
+    pub repo: std::sync::Arc<jj_lib::repo::ReadonlyRepo>,
+}
+
+pub enum Repo {
+    Git(GitRepo),
+    #[cfg(feature = "jj")]
+    JJ(JJRepo),
+}
+
 impl Repo {
+    pub fn workdir(&self) -> Option<&Path> {
+        match self {
+            Repo::Git(repo) => repo.workdir.as_deref(),
+            #[cfg(feature = "jj")]
+            Repo::JJ(repo) => Some(&repo.workdir),
+        }
+    }
+
+    pub fn as_git(&self) -> Option<&GitRepo> {
+        match self {
+            Repo::Git(repo) => Some(repo),
+            #[cfg(feature = "jj")]
+            Repo::JJ(_) => None,
+        }
+    }
+
+    #[cfg(feature = "jj")]
+    pub fn as_jj(&self) -> Option<&JJRepo> {
+        match self {
+            Repo::JJ(repo) => Some(repo),
+            _ => None,
+        }
+    }
+}
+
+impl GitRepo {
     /// Opens the associated git repository.
     pub fn open(&self) -> Repository {
         self.repo.to_thread_local()

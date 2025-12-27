@@ -14,7 +14,6 @@ const USERNAME_ENV_VAR: &str = "USERNAME";
 /// Will display the username if any of the following criteria are met:
 ///     - The current user is root (UID = 0) [1]
 ///     - The current user isn't the same as the one that is logged in (`$LOGNAME` != `$USER`) [2]
-///     - The user is currently connected as an SSH session (`$SSH_CONNECTION`) [3]
 ///     - The option `username.detect_env_vars` is set with a not negated environment variable [4]
 /// Does not display the username:
 ///     - If the option `username.detect_env_vars` is set with a negated environment variable [A]
@@ -40,7 +39,6 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
     let show_username = config.show_always
         || is_root // [1]
         || !is_login_user(context, &username) // [2]
-        || is_ssh_session(context) // [3]
         || has_detected_env_var == Detected::Yes; // [4]
 
     if !show_username || has_detected_env_var == Detected::Negated {
@@ -119,11 +117,6 @@ fn is_root_user() -> bool {
     nix::unistd::geteuid() == nix::unistd::ROOT
 }
 
-fn is_ssh_session(context: &Context) -> bool {
-    let ssh_env = ["SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY"];
-    ssh_env.iter().any(|env| context.get_env_os(env).is_some())
-}
-
 #[cfg(test)]
 mod tests {
 
@@ -146,7 +139,7 @@ mod tests {
             })
             .collect();
 
-        let expected = Some("astronaut in ");
+        let expected = None;
         assert_eq!(expected, actual.as_deref());
     }
 
@@ -259,7 +252,7 @@ mod tests {
                 style_user = ""
             })
             .collect();
-        let expected = Some("astronaut in ");
+        let expected = None;
 
         assert_eq!(expected, actual.as_deref());
     }
@@ -276,7 +269,7 @@ mod tests {
                 style_user = ""
             })
             .collect();
-        let expected = Some("astronaut in ");
+        let expected = None;
 
         assert_eq!(expected, actual.as_deref());
     }
@@ -293,7 +286,7 @@ mod tests {
                 style_user = ""
             })
             .collect();
-        let expected = Some("astronaut in ");
+        let expected = None;
 
         assert_eq!(expected, actual.as_deref());
     }
