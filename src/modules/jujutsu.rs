@@ -2,6 +2,7 @@ use futures::executor::{block_on, block_on_stream};
 use jj_lib::{
     backend::ChangeId,
     commit::Commit,
+    conflict_labels::ConflictLabels,
     conflicts::materialized_diff_stream,
     copies::CopyRecords,
     id_prefix::{IdPrefixContext, IdPrefixIndex},
@@ -91,7 +92,12 @@ pub fn module_diff<'a>(context: &'a Context) -> Option<Module<'a>> {
     }
 
     let diff = from_tree.diff_stream_with_copies(&to_tree, &EverythingMatcher, &copy_records);
-    let diff = materialized_diff_stream(repo.repo.store(), diff);
+    let unlabeled = ConflictLabels::unlabeled();
+    let conflict_labels = jj_lib::merge::Diff {
+        before: &unlabeled,
+        after: &unlabeled,
+    };
+    let diff = materialized_diff_stream(repo.repo.store(), diff, conflict_labels);
 
     let (added, deleted) = util::run_diff(block_on_stream(diff)).or_log(mod_name)?;
     let added = if config.only_nonzero_diffs && added == 0 {

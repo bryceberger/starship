@@ -91,7 +91,11 @@ fn diff_content(path: &RepoPath, value: MaterializedTreeValue) -> io::Result<Vec
         MaterializedTreeValue::GitSubmodule(id) => {
             Ok(format!("Git submodule checked out at {id}").into_bytes())
         }
-        MaterializedTreeValue::FileConflict(MaterializedFileConflictValue { contents, .. }) => {
+        MaterializedTreeValue::FileConflict(MaterializedFileConflictValue {
+            contents,
+            labels,
+            ..
+        }) => {
             let opts = ConflictMaterializeOptions {
                 marker_style: ConflictMarkerStyle::Git,
                 marker_len: None,
@@ -100,9 +104,11 @@ fn diff_content(path: &RepoPath, value: MaterializedTreeValue) -> io::Result<Vec
                     same_change: jj_lib::merge::SameChange::Accept,
                 },
             };
-            Ok(materialize_merge_result_to_bytes(&contents, &opts).into())
+            Ok(materialize_merge_result_to_bytes(&contents, &labels, &opts).into())
         }
-        MaterializedTreeValue::OtherConflict { id } => Ok(id.describe().into_bytes()),
+        MaterializedTreeValue::OtherConflict { id, labels } => {
+            Ok(id.describe(&labels).into_bytes())
+        }
         MaterializedTreeValue::Tree(id) => {
             panic!("Unexpected tree with id {id:?} in diff at path {path:?}");
         }
