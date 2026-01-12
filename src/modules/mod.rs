@@ -51,6 +51,8 @@ mod hg_state;
 mod hostname;
 mod java;
 mod jj_bookmark;
+#[cfg(feature = "jj")]
+mod jj_metrics;
 mod jobs;
 mod julia;
 mod kotlin;
@@ -176,6 +178,8 @@ pub fn handle<'a>(module: &str, context: &'a Context) -> Option<Module<'a>> {
             "hostname" => hostname::module(context),
             "java" => java::module(context),
             "jj_bookmark" => jj_bookmark::module(context),
+            #[cfg(feature = "jj")]
+            "jj_metrics" => jj_metrics::module(context),
             "jobs" => jobs::module(context),
             "julia" => julia::module(context),
             "kotlin" => kotlin::module(context),
@@ -316,6 +320,7 @@ pub fn description(module: &str) -> &'static str {
         "hostname" => "The system hostname",
         "java" => "The currently installed version of Java",
         "jj_bookmark" => "The closest ancestor bookmark in Jujutsu",
+        "jj_metrics" => "The currently added/deleted lines in your repo",
         "jobs" => "The current number of jobs running",
         "julia" => "The currently installed version of Julia",
         "kotlin" => "The currently installed version of Kotlin",

@@ -35,7 +35,7 @@ pub use crate::utils::statusline::{
 mod git_repo;
 mod jj_repo;
 #[cfg(feature = "jj")]
-mod jj_lib_repo;
+pub mod jj_lib_repo;
 
 pub use git_repo::{GitRemote, GitRepo};
 pub use jj_repo::JJRepo;

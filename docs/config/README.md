@@ -2608,6 +2608,20 @@ ignore_names = ["main", "master"]
 diverged_symbol = "⇕"
 ```
 
+## JJ Metrics
+
+The `jj_metrics` module will show the number of added and deleted lines in
+the current Jujutsu repository.
+
+### Options
+
+| Option               | Default                                                      | Description                           |
+| -------------------- | ------------------------------------------------------------ | ------------------------------------- |
+| `added_style`        | `'bold green'`                                               | The style for the added count.        |
+| `deleted_style`      | `'bold red'`                                                 | The style for the deleted count.      |
+| `only_nonzero_diffs` | `true`                                                       | Render status only for changed items. |
+| `format`             | `'([+$added]($added_style) )([-$deleted]($deleted_style) )'` | The format for the module.            |
+
 ## Jobs
 
 The `jobs` module shows the current number of jobs running.
