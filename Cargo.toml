@@ -33,7 +33,7 @@ default = ["battery", "notify", "jj"]
 battery = ["starship-battery"]
 config-schema = ["schemars"]
 notify = ["notify-rust"]
-jj = ["jj-lib"]
+jj = ["futures", "jj-lib", "pollster", "tokio"]
 
 [dependencies]
 clap = { version = "4.6.6", features = ["derive", "cargo", "unicode"] }
