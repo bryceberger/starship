@@ -52,6 +52,8 @@ mod hostname;
 mod java;
 mod jj_bookmark;
 #[cfg(feature = "jj")]
+mod jj_commit;
+#[cfg(feature = "jj")]
 mod jj_metrics;
 #[cfg(feature = "jj")]
 mod jj_operation;
@@ -180,6 +182,8 @@ pub fn handle<'a>(module: &str, context: &'a Context) -> Option<Module<'a>> {
             "hostname" => hostname::module(context),
             "java" => java::module(context),
             "jj_bookmark" => jj_bookmark::module(context),
+            #[cfg(feature = "jj")]
+            "jj_commit" => jj_commit::module(context),
             #[cfg(feature = "jj")]
             "jj_metrics" => jj_metrics::module(context),
             #[cfg(feature = "jj")]
@@ -324,6 +328,7 @@ pub fn description(module: &str) -> &'static str {
         "hostname" => "The system hostname",
         "java" => "The currently installed version of Java",
         "jj_bookmark" => "The closest ancestor bookmark in Jujutsu",
+        "jj_commit" => "The current commit and description",
         "jj_metrics" => "The currently added/deleted lines in your repo",
         "jj_operation" => "The current Jujutsu operation",
         "jobs" => "The current number of jobs running",
