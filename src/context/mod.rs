@@ -34,6 +34,8 @@ pub use crate::utils::statusline::{
 
 mod git_repo;
 mod jj_repo;
+#[cfg(feature = "jj")]
+pub mod jj_lib_repo;
 
 pub use git_repo::{GitRemote, GitRepo};
 pub use jj_repo::JJRepo;
@@ -66,6 +68,9 @@ pub struct Context<'a> {
 
     /// Private field to store JJ information for modules who need it
     jj_repo: OnceLock<Option<JJRepo>>,
+
+    #[cfg(feature = "jj")]
+    jj_lib_repo: OnceLock<Option<jj_lib_repo::Repo>>,
 
     /// The shell the user is assumed to be running
     pub shell: Shell,
@@ -187,6 +192,8 @@ impl<'a> Context<'a> {
             dir_contents: OnceLock::new(),
             git_repo: OnceLock::new(),
             jj_repo: OnceLock::new(),
+            #[cfg(feature = "jj")]
+            jj_lib_repo: OnceLock::new(),
             shell,
             target,
             width,
@@ -419,6 +426,13 @@ impl<'a> Context<'a> {
     #[cfg(test)]
     pub fn set_jj_repo(&mut self, repo: JJRepo) {
         self.jj_repo = OnceLock::from(Some(repo));
+    }
+
+    #[cfg(feature = "jj")]
+    pub fn get_jj_lib_repo(&self) -> Option<&jj_lib_repo::Repo> {
+        self.jj_lib_repo
+            .get_or_init(|| jj_lib_repo::init_repo(&self.current_dir))
+            .as_ref()
     }
 
     pub fn dir_contents(&self) -> Result<&DirContents, &std::io::Error> {

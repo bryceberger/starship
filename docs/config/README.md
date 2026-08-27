@@ -2608,6 +2608,50 @@ ignore_names = ["main", "master"]
 diverged_symbol = "⇕"
 ```
 
+## JJ Commit
+
+The `jj_commit` module shows the change id and description of the current
+Jujutsu repository.
+
+### Options
+
+| Option                    | Default              | Description                                              |
+| ------------------------- | -------------------- | -------------------------------------------------------- |
+| `change_id_length`        | `8`                  | The length of the displayed change id.                   |
+| `description_empty`       | `'(no description)'` | The text to display if the current description is empty. |
+| `style_prefix`            | `'bold purple'`      | Style for the short prefix of the current change id.     |
+| `style_rest`              | `'bright-black'`     | Style for the rest of the current change id.             |
+| `style_description`       | `''`                 | Style for the description.                               |
+| `style_description_empty` | `'green'`            | Style for the description, if it is empty.               |
+| `format`                  | `'[$prefix]($style_prefix)[$rest]($style_rest) [$description]($style_description) '` | The format for the module. |
+
+## JJ Metrics
+
+The `jj_metrics` module will show the number of added and deleted lines in
+the current Jujutsu repository.
+
+### Options
+
+| Option               | Default                                                      | Description                           |
+| -------------------- | ------------------------------------------------------------ | ------------------------------------- |
+| `added_style`        | `'bold green'`                                               | The style for the added count.        |
+| `deleted_style`      | `'bold red'`                                                 | The style for the deleted count.      |
+| `only_nonzero_diffs` | `true`                                                       | Render status only for changed items. |
+| `format`             | `'([+$added]($added_style) )([-$deleted]($deleted_style) )'` | The format for the module.            |
+
+## JJ Operation
+
+The `jj_operation` module will show the operation id of the current Jujutsu
+repository.
+
+### Options
+
+| Option             | Default                   | Description                               |
+| ------------------ | ------------------------- | ----------------------------------------- |
+| `style`            | `'blue'`                  | The style for the operation id.           |
+| `operation_length` | `12`                      | The length of the displayed operation id. |
+| `format`           | `'[$operation]($style) '` | The format for the module.                |
+
 ## Jobs
 
 The `jobs` module shows the current number of jobs running.

@@ -54,6 +54,12 @@ pub mod hg_state;
 pub mod hostname;
 pub mod java;
 pub mod jj_bookmark;
+#[cfg(feature = "jj")]
+pub mod jj_commit;
+#[cfg(feature = "jj")]
+pub mod jj_metrics;
+#[cfg(feature = "jj")]
+pub mod jj_operation;
 pub mod jobs;
 pub mod julia;
 pub mod kotlin;
@@ -230,6 +236,15 @@ pub struct FullConfig<'a> {
     java: java::JavaConfig<'a>,
     #[serde(borrow)]
     jj_bookmark: jj_bookmark::JJBookmarkConfig<'a>,
+    #[serde(borrow)]
+    #[cfg(feature = "jj")]
+    jj_commit: jj_commit::JJCommitConfig<'a>,
+    #[serde(borrow)]
+    #[cfg(feature = "jj")]
+    jj_metrics: jj_metrics::JJMetricsConfig<'a>,
+    #[serde(borrow)]
+    #[cfg(feature = "jj")]
+    jj_operation: jj_operation::JJOperationConfig<'a>,
     #[serde(borrow)]
     jobs: jobs::JobsConfig<'a>,
     #[serde(borrow)]
